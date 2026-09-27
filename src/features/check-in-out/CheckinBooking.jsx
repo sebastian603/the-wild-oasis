@@ -6,8 +6,15 @@ import Heading from "../../ui/Heading";
 import ButtonGroup from "../../ui/ButtonGroup";
 import Button from "../../ui/Button";
 import ButtonText from "../../ui/ButtonText";
+import Checkbox from "../../ui/Checkbox";
 
 import { useMoveBack } from "../../hooks/useMoveBack";
+import Spinner from "../../ui/Spinner";
+import { useBooking } from "../bookings/useBooking";
+import { useEffect, useState } from "react";
+import { formatCurrency } from "../../utils/helpers";
+import { useCheckin } from "./useCheckin";
+import Checkin from "../../pages/Checkin";
 
 const Box = styled.div`
   /* Box */
@@ -18,9 +25,21 @@ const Box = styled.div`
 `;
 
 function CheckinBooking() {
-  const moveBack = useMoveBack();
+  const [confirmPaid, setConfirmPaid] = useState(false);
+  const { booking, isLoading, error } = useBooking();
+  const { checkIn, isCheckingIn } = useCheckin();
 
-  const booking = {};
+  useEffect(
+    function () {
+      setConfirmPaid(booking?.isPaid);
+    },
+    [booking?.isPaid],
+  );
+
+  const moveBack = useMoveBack();
+  if (isLoading) return <Spinner />;
+
+  console.log(booking);
 
   const {
     id: bookingId,
@@ -31,7 +50,12 @@ function CheckinBooking() {
     numNights,
   } = booking;
 
-  function handleCheckin() {}
+  function handleCheckin() {
+    if (!confirmPaid) return;
+    if (confirmPaid) {
+      checkIn(bookingId);
+    }
+  }
 
   return (
     <>
@@ -42,8 +66,25 @@ function CheckinBooking() {
 
       <BookingDataBox booking={booking} />
 
+      <Box>
+        <Checkbox
+          disabled={confirmPaid === true}
+          checked={confirmPaid || isCheckingIn}
+          onChange={() => setConfirmPaid((s) => !s)}
+          id="confirm"
+        >
+          I confirm that {guests.fullName} has paid the total amount of{" "}
+          {formatCurrency(totalPrice)}.
+        </Checkbox>
+      </Box>
+
       <ButtonGroup>
-        <Button onClick={handleCheckin}>Check in booking #{bookingId}</Button>
+        <Button
+          disabled={confirmPaid === false || isCheckingIn}
+          onClick={handleCheckin}
+        >
+          Check in booking #{bookingId}
+        </Button>
         <Button variation="secondary" onClick={moveBack}>
           Back
         </Button>
